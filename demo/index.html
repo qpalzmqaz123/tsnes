@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EMU</title>
+    <style>
+        body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,button,textarea,p,blockquote,th,td { margin:0; padding:0; }
+        body { background:#fff; color:#555; font-size:14px; font-family: Verdana, Arial, Helvetica, sans-serif; }
+        td,th,caption { font-size:14px; }
+        h1, h2, h3, h4, h5, h6 { font-weight:normal; font-size:100%; }
+        address, caption, cite, code, dfn, em, strong, th, var { font-style:normal; font-weight:normal;}
+        a { color:#555; text-decoration:none; }
+        a:hover { text-decoration:underline; }
+        img { border:none; }
+        ol,ul,li { list-style:none; }
+        input, textarea, select, button { font:14px Verdana,Helvetica,Arial,sans-serif; }
+        table { border-collapse:collapse; }
+        html {overflow-y: scroll;}
+        .clearfix:after {content: "."; display: block; height:0; clear:both; visibility: hidden;}
+        .clearfix { *zoom:1; }
+
+        #disasm {
+            margin-left: 30px;
+            display: inline-block;
+            position: absolute;
+            height: 480px;
+            overflow: hidden;
+        }
+
+        #register {
+            display: inline-block;
+        }
+
+        label {
+            display: block;
+        }
+
+        .debug {
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <code>
+            Controller Mapping: A: z, B: x, UP: up, DOWN: down, LEFT: left, RIGHT: right, SELECT: right-shift START: enter
+        </code>
+    </div>
+
+    <div>
+        Open nes file
+        <input id="file-input" type="file" accept=".nes">
+        debug-mode
+        <input id="debug-ctrl" type="checkbox">
+    </div>
+
+    <div>
+        <label>Status</label>
+        <div id="rom"></div>
+    </div>
+
+    <div>
+        <canvas id="screen" width="512" height="480" style="display: inline-block"></canvas>
+        <div class="debug" id="disasm"></div>
+    </div>
+
+    <div class="debug">
+        <label>CPU register</label>
+        <div id="register"></div>
+    </div>
+
+    <div class="debug">
+        <label>PPU register</label>
+        <div id="ppu-register"></div>
+    </div>
+
+    <div class="debug">
+        <label>Background palette</label>
+        <canvas id="background-palette" width="160" height="10"></canvas>
+    </div>
+
+    <div class="debug">
+        <label>Sprite palette</label>
+        <canvas id="sprite-palette" width="160" height="10"></canvas>
+    </div>
+
+    <div class="debug">
+        <label>Pattern table</label>
+        <canvas id="partten-table1" width="128" height="128"></canvas>
+        <canvas id="partten-table2" width="128" height="128"></canvas>
+    </div>
+
+    <div class="debug">
+        <label>Name table</label>
+        <canvas id="name-table" width="512" height="480"></canvas>
+    </div>
+</body>
+</html>
