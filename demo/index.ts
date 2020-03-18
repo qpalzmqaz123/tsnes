@@ -15,12 +15,12 @@ input.addEventListener('change', () => {
 
   const reader = new FileReader();
   const file = (input as any).files[0];
-  let buffer = new Uint8Array();
+  let buffer = new Uint8Array(0);
 
   reader.readAsArrayBuffer(file);
 
   reader.onload = e => {
-    const data = new Uint8Array(e.target.result as ArrayBuffer);
+    const data = new Uint8Array((e.target as any).result as ArrayBuffer);
     const tmp = new Uint8Array(buffer.length + data.length);
 
     tmp.set(buffer);
@@ -58,7 +58,7 @@ function startGame(nesData: Uint8Array) {
   screen.start();
 
   const debug = document.getElementById('debug-ctrl') as HTMLInputElement;
-  debug.addEventListener('change', (e: InputEvent) => {
+  debug.addEventListener('change', e => {
     const elements = document.getElementsByClassName('debug');
 
     if (debug.checked) {
@@ -117,10 +117,10 @@ function startGame(nesData: Uint8Array) {
       case 'KeyX':
         button = StandardControllerButton.B;
         break;
-      default:
-        return;
     }
 
     emulator.standardController1.updateButton(button, e.type === 'keydown');
+
+    e.preventDefault();
   }
 }
