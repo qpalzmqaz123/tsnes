@@ -112,7 +112,7 @@ export class CPU implements ICPU {
     this.registers.A = 0;
     this.registers.X = 0;
     this.registers.Y = 0;
-    this.registers.P = 0 | Flags.U;
+    this.registers.P = 0;
     this.registers.SP = 0xfd;
     this.registers.PC = this.bus.readWord(InterruptVector.RESET);
 
@@ -135,22 +135,24 @@ export class CPU implements ICPU {
     }
 
     this.pushWord(this.registers.PC);
+    this.pushByte((this.registers.P | Flags.U) & ~Flags.B);
 
     this.setFlag(Flags.I, true);
-    this.setFlag(Flags.B, false);
-    this.pushByte(this.registers.P);
 
     this.registers.PC = this.bus.readWord(InterruptVector.IRQ);
+
+    this.deferCycles += 7;
   }
 
   public nmi(): void {
     this.pushWord(this.registers.PC);
+    this.pushByte((this.registers.P | Flags.U) & ~Flags.B);
 
     this.setFlag(Flags.I, true);
-    this.setFlag(Flags.B, false);
-    this.pushByte(this.registers.P);
 
     this.registers.PC = this.bus.readWord(InterruptVector.NMI);
+
+    this.deferCycles += 7;
   }
 
   private setFlag(flag: Flags, value: boolean): void {
@@ -493,10 +495,9 @@ export class CPU implements ICPU {
 
   private brk(addrData: AddressData): void {
     this.pushWord(this.registers.PC);
+    this.pushByte(this.registers.P | Flags.B | Flags.U);
 
     this.setFlag(Flags.I, true);
-    this.setFlag(Flags.B, true);
-    this.pushByte(this.registers.P);
 
     this.registers.PC = this.bus.readWord(InterruptVector.IRQ);
   }
@@ -657,7 +658,7 @@ export class CPU implements ICPU {
   }
 
   private php(addrData: AddressData): void {
-    this.pushByte(this.registers.P | Flags.B);
+    this.pushByte(this.registers.P | Flags.B | Flags.U);
   }
 
   private pla(addrData: AddressData): void {
@@ -668,7 +669,7 @@ export class CPU implements ICPU {
   private plp(addrData: AddressData): void {
     this.registers.P = this.popByte();
     this.setFlag(Flags.B, false);
-    this.setFlag(Flags.U, true);
+    this.setFlag(Flags.U, false);
   }
 
   private rol(addrData: AddressData): void {
@@ -704,7 +705,7 @@ export class CPU implements ICPU {
   private rti(addrData: AddressData): void {
     this.registers.P = this.popByte();
     this.setFlag(Flags.B, false);
-    this.setFlag(Flags.U, true);
+    this.setFlag(Flags.U, false);
 
     this.registers.PC = this.popWord();
   }

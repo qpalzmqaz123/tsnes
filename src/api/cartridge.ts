@@ -7,8 +7,8 @@ export enum Mirror {
 }
 
 export interface IROMInfo {
-  PRG: number; // 16KB unit
-  CHR: number; // 8KB unit
+  prg: number; // 16KB unit
+  chr: number; // 8KB unit
   mapper: number; // mapper number
   mirror: Mirror;
   hasBatteryBacked: boolean;

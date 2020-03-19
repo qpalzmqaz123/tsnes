@@ -53,6 +53,7 @@ export class Emulator implements IEmulator {
 
     ppu.interrupt = interrupt;
     ppu.bus = ppuBus;
+    ppu.mapper = cartridge.mapper;
 
     dma.cpuBus = cpuBus;
     dma.oamData = ppu.oamMemory;
@@ -70,6 +71,8 @@ export class Emulator implements IEmulator {
     cpuBus.dma = dma;
     cpuBus.controller1 = standardController1;
     cpuBus.controller2 = standardController2;
+
+    cartridge.mapper.interrupt = interrupt;
 
     this.cpu = cpu;
     this.ppu = ppu;

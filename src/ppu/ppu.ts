@@ -5,6 +5,7 @@ import { Controller } from './controller';
 import { Mask } from './mask';
 import { Status } from './status';
 import { IInterrupt } from '../api/interrupt';
+import { IMapper } from '../api/mapper';
 
 enum Register {
   PPUCTRL = 0x2000, // RW
@@ -71,9 +72,11 @@ enum SpritePixel {
 }
 
 export class PPU implements IPPU {
-  public pixels: Uint8Array = new Uint8Array(256 * 240); // NES color
   public bus: IBus;
+  public mapper: IMapper;
   public interrupt: IInterrupt;
+
+  public pixels: Uint8Array = new Uint8Array(256 * 240); // NES color
   public oamMemory: Uint8Array = new Uint8Array(256);
 
   private controller: IController = new Controller();
@@ -101,8 +104,6 @@ export class PPU implements IPPU {
     if (!this.mask.isShowBackground && !this.mask.isShowSprite) {
       return;
     }
-
-    // TODO: check if background or sprite is hidden
 
     // Scanline 0 - 239: visible lines
     if (0 <= this.scanLine && this.scanLine <= 239) {
@@ -269,7 +270,7 @@ export class PPU implements IPPU {
   }
 
   private readOAMData(): uint8 {
-    return this.oamMemory[this.oamAddress++ & 0xFF];
+    return this.oamMemory[this.oamAddress];
   }
 
   private writeOAMData(data: uint8): void {
@@ -353,6 +354,8 @@ export class PPU implements IPPU {
       this.status.isZeroSpriteHit = false;
       this.clearVBlank();
     }
+
+    this.mapper.ppuClockHandle(this.scanLine, this.cycle);
   }
 
   private setVBlank() {
@@ -369,6 +372,10 @@ export class PPU implements IPPU {
   }
 
   private fetchTileRelatedData() {
+    if (!this.mask.isShowBackground) {
+      return;
+    }
+
     switch (this.cycle % 8) {
       case 1:
         this.loadBackground();
@@ -433,6 +440,10 @@ export class PPU implements IPPU {
   }
 
   private shiftBackground() {
+    if (!this.mask.isShowBackground) {
+      return;
+    }
+
     this.shiftRegister.lowBackgorundTailBytes <<= 1;
     this.shiftRegister.highBackgorundTailBytes <<= 1;
     this.shiftRegister.lowBackgroundAttributeByes <<= 1;
@@ -493,8 +504,8 @@ export class PPU implements IPPU {
     const paletteIndex = bit3 << 3 | bit2 << 2 | bit1 << 1 | bit0 << 0;
     const spritePaletteIndex = this.spritePixels[x] & SpritePixel.PALETTE;
 
-    const isTransparentSprite = spritePaletteIndex % 4 === 0;
-    const isTransparentBackground = paletteIndex % 4 === 0;
+    const isTransparentSprite = spritePaletteIndex % 4 === 0 || !this.mask.isShowSprite;
+    const isTransparentBackground = paletteIndex % 4 === 0 || !this.mask.isShowBackground;
 
     let address = 0x3F00;
     if (isTransparentBackground) {
@@ -519,6 +530,10 @@ export class PPU implements IPPU {
   }
 
   private clearSecondaryOam() {
+    if (!this.mask.isShowSprite) {
+      return;
+    }
+
     this.secondaryOam.forEach(oam => {
       oam.attributes = 0xFF;
       oam.tileIndex = 0xFF;
@@ -528,6 +543,10 @@ export class PPU implements IPPU {
   }
 
   private evalSprite() {
+    if (!this.mask.isShowSprite) {
+      return;
+    }
+
     let spriteCount = 0;
 
     // Find eligible sprites
@@ -553,6 +572,10 @@ export class PPU implements IPPU {
   }
 
   private fetchSprite() {
+    if (!this.mask.isShowSprite) {
+      return;
+    }
+
     this.spritePixels.fill(0);
 
     for (const sprite of this.secondaryOam.reverse()) {

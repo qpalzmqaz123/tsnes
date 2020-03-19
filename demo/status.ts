@@ -27,8 +27,8 @@ export class Status {
     const cartridge: ICartridge = (this.emulator as any).cartridge;
 
     const txt = sprintf('PRG:%dx16KB CHR:%dx8KB mapper#:%d mirror:%s battery-backed:%s trained:%s fps:%d',
-      cartridge.info.PRG,
-      cartridge.info.CHR,
+      cartridge.info.prg,
+      cartridge.info.chr,
       cartridge.info.mapper,
       Mirror[cartridge.info.mirror],
       cartridge.info.hasBatteryBacked ? 'yes' : 'no',
