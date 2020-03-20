@@ -18,7 +18,7 @@ export class Screen {
   public start() {
     this.interval = setInterval(() => {
       this.refresh();
-    }, 1000 / 60);
+    }, 17);
   }
 
   public stop() {

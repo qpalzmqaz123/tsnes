@@ -40,7 +40,10 @@ export class Mapper4 implements IMapper {
     private readonly prg: Uint8Array,
     private readonly chr: Uint8Array,
     private readonly prgBanks = prg.length >> 13,
-  ) {}
+  ) {
+    this.chr = new Uint8Array(256 * 1024);
+    this.chr.set(chr);
+  }
 
   public read(address: uint16): uint8 {
     address &= 0xFFFF;
@@ -50,7 +53,7 @@ export class Mapper4 implements IMapper {
     } else if (address >= 0x8000) {
       return this.readPrg(address);
     } else if (address >= 0x6000) {
-      return this.ram[address - 0x6000] & 0xFF;
+      return this.ram[address - 0x6000];
     } else {
       throw new Error(`Invalid address: ${address.toString(16)}`);
     }
@@ -58,12 +61,13 @@ export class Mapper4 implements IMapper {
 
   public write(address: uint16, data: uint8): void {
     address &= 0xFFFF;
-    data &= 0xFF;
 
-    if (address >= 0x8000) {
+    if (address < 0x2000) {
+      this.writeChr(address, data);
+    } else if (address >= 0x8000) {
       this.writeRegister(address, data);
     } else if (address >= 0x6000) {
-      this.ram[address - 0x6000] = data & 0xFF;
+      this.ram[address - 0x6000] = data;
     } else {
       throw new Error(`Invalid address: ${address.toString(16)}, data: '${data}'`);
     }
@@ -89,16 +93,28 @@ export class Mapper4 implements IMapper {
   }
 
   private readPrg(address: uint16): uint8 {
+    return this.prg[this.parsePrgAddress(address)];
+  }
+
+  private readChr(address: uint16): uint8 {
+    return this.chr[this.parseChrAddress(address)];
+  }
+
+  private writeChr(address: uint16, data: uint8): void {
+    this.chr[this.parseChrAddress(address)] = data;
+  }
+
+  private parsePrgAddress(address: uint16): uint16 {
     const cpuBank = (address - 0x8000) >> 13;
     const offset = address & 0x1FFF;
 
     const register = PrgBankTable[this.prgBankMode][cpuBank];
     const bank = register < 0 ? this.prgBanks + register : this.R[register];
 
-    return this.prg[(bank << 13) + offset] & 0xFF;
+    return (bank << 13) + offset;
   }
 
-  private readChr(address: uint16): uint8 {
+  private parseChrAddress(address: uint16): uint16 {
     const ppuBank = address >> 10;
     const offset = address & 0x03FF;
 
@@ -108,7 +124,7 @@ export class Mapper4 implements IMapper {
       bank++;
     }
 
-    return this.chr[(bank << 10) + offset] & 0xFF;
+    return (bank << 10) + offset;
   }
 
   private writeRegister(address: uint16, data: uint8): void {
@@ -124,7 +140,7 @@ export class Mapper4 implements IMapper {
       if (address & 0x01) {
         // TODO: PRG RAM protect ($A001-$BFFF, odd)
       } else {
-        // TODO: Mirroring ($A000-$BFFE, even)
+        // Mirroring ($A000-$BFFE, even)
         if (this.cartridge.info.mirror !== Mirror.FOUR_SCREEN) {
           this.cartridge.info.mirror = data & 0x01 ? Mirror.HORIZONTAL : Mirror.VERTICAL;
         }

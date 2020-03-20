@@ -11,12 +11,12 @@ export class RAM implements IRAM {
   public read(address: uint16): uint8 {
     address = (address - this.offset) & 0xFFFF;
 
-    return this.ram[address] & 0xFF;
+    return this.ram[address];
   }
 
   public write(address: uint16, data: uint8): void {
     address = (address - this.offset) & 0xFFFF;
 
-    this.ram[address] = data & 0xFF;
+    this.ram[address] = data;
   }
 }

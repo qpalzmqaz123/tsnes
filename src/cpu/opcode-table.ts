@@ -39,7 +39,14 @@ export interface IOpcodeEntry {
 }
 
 const opcodeTable: IOpcodeEntry[] = [
-  E(Instruction.BRK, AddressingMode.IMPLICIT, 1, 7, 0), // 0
+  // http://nesdev.com/the%20%27B%27%20flag%20&%20BRK%20instruction.txt Says:
+  //   Regardless of what ANY 6502 documentation says, BRK is a 2 byte opcode. The
+  //   first is #$00, and the second is a padding byte. This explains why interrupt
+  //   routines called by BRK always return 2 bytes after the actual BRK opcode,
+  //   and not just 1.
+  // So we use ZERO_PAGE instead of IMPLICIT addressing mode
+  E(Instruction.BRK, AddressingMode.ZERO_PAGE, 2, 7, 0), // 0
+
   E(Instruction.ORA, AddressingMode.X_INDEXED_INDIRECT, 2, 6, 0), // 1, 1h
   undefined, // 2
   E(Instruction.SLO, AddressingMode.X_INDEXED_INDIRECT, 2, 8, 0), // 3, 3h
@@ -293,7 +300,7 @@ const opcodeTable: IOpcodeEntry[] = [
   E(Instruction.ISC, AddressingMode.ABSOLUTE_Y, 3, 7, 0), // 251, FBh
   E(Instruction.NOP, AddressingMode.ABSOLUTE_X, 3, 4, 1), // 252, FCh
   E(Instruction.SBC, AddressingMode.ABSOLUTE_X, 3, 4, 1), // 253, FDh
-  E(Instruction.INC, AddressingMode.ABSOLUTE_X, 3, 7, 1), // 254, FEh
+  E(Instruction.INC, AddressingMode.ABSOLUTE_X, 3, 7, 0), // 254, FEh
   E(Instruction.ISC, AddressingMode.ABSOLUTE_X, 3, 7, 0), // 255, FFh
 ];
 

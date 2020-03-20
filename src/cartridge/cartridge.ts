@@ -2,6 +2,11 @@ import { IMapper } from 'src/api/mapper';
 import { Mapper0 } from '../mapper/mapper0';
 import { ICartridge, IROMInfo, Mirror } from '../api/cartridge';
 import { Mapper4 } from '../mapper/mapper4';
+import { Mapper1 } from '../mapper/mapper1';
+import { Mapper2 } from '../mapper/mapper2';
+import { Mapper3 } from '../mapper/mapper3';
+import { Mapper74 } from '../mapper/mapper74';
+import { Mapper242 } from '../mapper/mapper242';
 
 enum Header {
   PRG = 4,
@@ -30,8 +35,23 @@ export class Cartridge implements ICartridge {
       case 0:
         this.mapper = new Mapper0(this, prg, chr);
         break;
+      case 1:
+        this.mapper = new Mapper1(this, prg, chr);
+        break;
+      case 2:
+        this.mapper = new Mapper2(this, prg, chr);
+        break;
+      case 3:
+        this.mapper = new Mapper3(this, prg, chr);
+        break;
       case 4:
         this.mapper = new Mapper4(this, prg, chr);
+        break;
+      case 74:
+        this.mapper = new Mapper74(this, prg, chr);
+        break;
+      case 242:
+        this.mapper = new Mapper242(this, prg, chr);
         break;
       default:
         throw new Error(`Unsupported mapper: ${this.info.mapper}`);
@@ -59,6 +79,10 @@ export class Cartridge implements ICartridge {
       if (data[i] !== str.charCodeAt(i)) {
         throw new Error('Invalid nes file');
       }
+    }
+
+    if ((data[7] & 0x0C) === 0x08) {
+      throw new Error('NES2.0 is not currently supported');
     }
   }
 }

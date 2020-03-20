@@ -1,25 +1,27 @@
 import { IMapper } from '../api/mapper';
-import {uint16, uint8} from '../api/types';
 import { IInterrupt } from '../api/interrupt';
+import { uint16, uint8 } from '../api/types';
 import { ICartridge } from '../api/cartridge';
 
-// NROM: https://wiki.nesdev.com/w/index.php/NROM
-export class Mapper0 implements IMapper {
+// CNROM: https://wiki.nesdev.com/w/index.php/CNROM
+export class Mapper3 implements IMapper {
   public interrupt: IInterrupt;
 
-  private readonly isMirrored: boolean;
   private readonly ram: Uint8Array = new Uint8Array(8192);
+  private chrBankSelect = 0;
 
   constructor(
     private readonly cartridge: ICartridge,
     private readonly prg: Uint8Array,
     private readonly chr: Uint8Array,
   ) {
-    this.isMirrored = prg.length === 16 * 1024;
+    this.chr = new Uint8Array(32 * 1024);
+    this.chr.set(chr);
 
-    if (chr.length === 0) {
-      // If there is no chr memory, treat it as ram
-      this.chr = new Uint8Array(0x2000);
+    this.prg = new Uint8Array(32 * 1024);
+    this.prg.set(prg);
+    if (prg.length === 16 * 1024) {
+      this.prg.set(prg, 16 * 1024);
     }
   }
 
@@ -27,9 +29,9 @@ export class Mapper0 implements IMapper {
     address &= 0xFFFF;
 
     if (address < 0x2000) {
-      return this.chr[this.parseAddress(address)];
+      return this.chr[(this.chrBankSelect << 13) + address];
     } else if (address >= 0x8000) {
-      return this.prg[this.parseAddress(address)];
+      return this.prg[address - 0x8000];
     } else if (address >= 0x6000) {
       return this.ram[address - 0x6000];
     } else {
@@ -41,26 +43,17 @@ export class Mapper0 implements IMapper {
     address &= 0xFFFF;
 
     if (address < 0x2000) {
-      this.chr[this.parseAddress(address)] = data;
+      this.chr[(this.chrBankSelect << 13) + address] = data;
     } else if (address >= 0x8000) {
-      this.prg[this.parseAddress(address)] = data;
+      this.chrBankSelect = data & 0x03;
     } else if (address >= 0x6000) {
       this.ram[address - 0x6000] = data;
     } else {
-      throw new Error(`Invalid address: ${address.toString(16)}`);
+      throw new Error(`Invalid address: ${address.toString(16)}, data: '${data}'`);
     }
   }
 
   public ppuClockHandle(scanLine: number, cycle: number) {
     // Do nothing
-  }
-
-  // Refer to http://forums.nesdev.com/viewtopic.php?t=5494
-  private parseAddress(address: uint16): uint16 {
-    if (address < 0x2000) { // CHR
-      return address;
-    } else { // PRG
-      return (this.isMirrored ? address & 0b1011111111111111 : address) - 0x8000;
-    }
   }
 }

@@ -178,25 +178,12 @@ export class CPU implements ICPU {
       return;
     }
 
-    // Illegal opcode
-    if (entry.bytes === 0) {
-      this.deferCycles += entry.cycles;
-      return;
-    }
-
     const addrModeFunc = this.addressingModeMap.get(entry.addressingMode);
     if (!addrModeFunc) {
       throw new Error(`Unsuppored addressing mode: ${AddressingMode[entry.addressingMode]}`);
     }
 
-    const data = Uint8Array.from(
-      Array(entry.bytes - 1)
-        .fill(0)
-        .map((v, i) => this.bus.readByte(this.registers.PC + i))
-    );
-    this.registers.PC += data.length;
-
-    const ret: AddressData = addrModeFunc.call(this, data);
+    const ret: AddressData = addrModeFunc.call(this);
     if (ret.isCrossPage) {
       this.deferCycles += entry.pageCycles;
     }
@@ -217,7 +204,7 @@ export class CPU implements ICPU {
 
   private pushByte(data: uint8): void {
     this.bus.writeByte(0x100 + this.registers.SP, data);
-    this.registers.SP--;
+    this.registers.SP = (this.registers.SP - 1) & 0xFF;
   }
 
   private popWord(): uint16 {
@@ -225,7 +212,7 @@ export class CPU implements ICPU {
   }
 
   private popByte(): uint8 {
-    this.registers.SP++;
+    this.registers.SP = (this.registers.SP + 1) & 0xFF;
     return this.bus.readByte(0x100 + this.registers.SP);
   }
 
@@ -242,8 +229,9 @@ export class CPU implements ICPU {
     }
   }
 
-  private absolute(data: Uint8Array): AddressData {
-    const address = this.arr2Word(data);
+  private absolute(): AddressData {
+    const address = this.bus.readWord(this.registers.PC);
+    this.registers.PC += 2;
 
     return {
       address: address & 0xFFFF,
@@ -252,8 +240,9 @@ export class CPU implements ICPU {
     };
   }
 
-  private absoluteX(data: Uint8Array): AddressData {
-    const baseAddress = this.arr2Word(data);
+  private absoluteX(): AddressData {
+    const baseAddress = this.bus.readWord(this.registers.PC);
+    this.registers.PC += 2;
 
     const address = baseAddress + this.registers.X;
 
@@ -264,8 +253,9 @@ export class CPU implements ICPU {
     };
   }
 
-  private absoluteY(data: Uint8Array): AddressData {
-    const baseAddress = this.arr2Word(data);
+  private absoluteY(): AddressData {
+    const baseAddress = this.bus.readWord(this.registers.PC);
+    this.registers.PC += 2;
     const address = baseAddress + this.registers.Y;
 
     return {
@@ -275,7 +265,7 @@ export class CPU implements ICPU {
     };
   }
 
-  private accumulator(data: Uint8Array): AddressData {
+  private accumulator(): AddressData {
     return {
       address: NaN,
       data: this.registers.A,
@@ -283,15 +273,15 @@ export class CPU implements ICPU {
     };
   }
 
-  private immediate(data: Uint8Array): AddressData {
+  private immediate(): AddressData {
     return {
       address: NaN,
-      data: data[0],
+      data: this.bus.readByte(this.registers.PC++),
       isCrossPage: false,
     };
   }
 
-  private implicit(data: Uint8Array): AddressData {
+  private implicit(): AddressData {
     return {
       address: NaN,
       data: NaN,
@@ -299,8 +289,9 @@ export class CPU implements ICPU {
     };
   }
 
-  private indirect(data: Uint8Array): AddressData {
-    let address = this.arr2Word(data);
+  private indirect(): AddressData {
+    let address = this.bus.readWord(this.registers.PC);
+    this.registers.PC += 2;
 
     if ((address & 0xFF) === 0xFF) { // Hardware bug
       address = this.bus.readByte(address & 0xFF00) << 8 | this.bus.readByte(address);
@@ -315,8 +306,8 @@ export class CPU implements ICPU {
     };
   }
 
-  private indirectYIndexed(data: Uint8Array): AddressData {
-    const value = data[0];
+  private indirectYIndexed(): AddressData {
+    const value = this.bus.readByte(this.registers.PC++);
 
     const l = this.bus.readByte(value & 0xFF);
     const h = this.bus.readByte((value + 1) & 0xFF);
@@ -331,9 +322,9 @@ export class CPU implements ICPU {
     };
   }
 
-  private relative(data: Uint8Array): AddressData {
+  private relative(): AddressData {
     // Range is -128 ~ 127
-    let offset = data[0];
+    let offset = this.bus.readByte(this.registers.PC++);
     if (offset & 0x80) {
       offset = offset - 0x100;
     }
@@ -345,8 +336,8 @@ export class CPU implements ICPU {
     };
   }
 
-  private xIndexedIndirect(data: Uint8Array): AddressData {
-    const value = data[0];
+  private xIndexedIndirect(): AddressData {
+    const value = this.bus.readByte(this.registers.PC++);
     const address = (value + this.registers.X);
 
     const l = this.bus.readByte(address & 0xFF);
@@ -359,8 +350,8 @@ export class CPU implements ICPU {
     };
   }
 
-  private zeroPage(data: Uint8Array): AddressData {
-    const address = data[0];
+  private zeroPage(): AddressData {
+    const address = this.bus.readByte(this.registers.PC++);
 
     return {
       address: address & 0xFFFF,
@@ -369,8 +360,8 @@ export class CPU implements ICPU {
     };
   }
 
-  private zeroPageX(data: Uint8Array): AddressData {
-    const address = (data[0] + this.registers.X) & 0xFF;
+  private zeroPageX(): AddressData {
+    const address = (this.bus.readByte(this.registers.PC++) + this.registers.X) & 0xFF;
 
     return {
       address: address & 0xFFFF,
@@ -379,8 +370,8 @@ export class CPU implements ICPU {
     };
   }
 
-  private zeroPageY(data: Uint8Array): AddressData {
-    const address = (data[0] + this.registers.Y) & 0xFF;
+  private zeroPageY(): AddressData {
+    const address = (this.bus.readByte(this.registers.PC++) + this.registers.Y) & 0xFF;
 
     return {
       address: address & 0xFFFF,

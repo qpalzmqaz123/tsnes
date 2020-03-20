@@ -88,6 +88,9 @@ export class PPUBus implements IBus {
       case Mirror.VERTICAL:
         return address & 0x27FF;
       case Mirror.FOUR_SCREEN:
+        return address;
+      case Mirror.SINGLE_SCREEN_LOWER_BANK:
+      case Mirror.SINGLE_SCREEN_UPPER_BANK:
       default:
         throw new Error(`Invalid mirror type: '${this.cartridge.info.mirror}'`);
     }

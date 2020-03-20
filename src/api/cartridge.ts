@@ -4,6 +4,8 @@ export enum Mirror {
   HORIZONTAL,
   VERTICAL,
   FOUR_SCREEN,
+  SINGLE_SCREEN_LOWER_BANK,
+  SINGLE_SCREEN_UPPER_BANK,
 }
 
 export interface IROMInfo {
