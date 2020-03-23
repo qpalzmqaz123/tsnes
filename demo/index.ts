@@ -8,6 +8,7 @@ import { Status } from './status';
 import { StandardControllerButton } from '../src/api/controller';
 import { Emulator } from '../src';
 import { CpuRegister } from './cpu-register';
+import { Audio } from './audio';
 
 const input = document.getElementById('file-input') as HTMLInputElement;
 input.addEventListener('change', () => {
@@ -41,7 +42,12 @@ input.addEventListener('change', () => {
 });
 
 function startGame(nesData: Uint8Array) {
-  const emulator = new Emulator(nesData);
+  const audio = new Audio();
+
+  const emulator = new Emulator(nesData, {
+    sampleRate: audio.sampleRate,
+    onSample: volume => audio.onSample(volume),
+  });
 
   const status = new Status(emulator, document.getElementById('rom'));
   const screen = new Screen(emulator, document.getElementById('screen') as HTMLCanvasElement);
@@ -93,16 +99,16 @@ function startGame(nesData: Uint8Array) {
   function keyboardHandle(e: KeyboardEvent) {
     let button: StandardControllerButton;
     switch (e.code) {
-      case 'ArrowUp':
+      case 'KeyW':
         button = StandardControllerButton.UP;
         break;
-      case 'ArrowDown':
+      case 'KeyS':
         button = StandardControllerButton.DOWN;
         break;
-      case 'ArrowLeft':
+      case 'KeyA':
         button = StandardControllerButton.LEFT;
         break;
-      case 'ArrowRight':
+      case 'KeyD':
         button = StandardControllerButton.RIGHT;
         break;
       case 'Enter':
@@ -111,15 +117,16 @@ function startGame(nesData: Uint8Array) {
       case 'ShiftRight':
         button = StandardControllerButton.SELECT;
         break;
-      case 'KeyZ':
+      case 'KeyL':
         button = StandardControllerButton.A;
         break;
-      case 'KeyX':
+      case 'KeyK':
         button = StandardControllerButton.B;
         break;
     }
 
     emulator.standardController1.updateButton(button, e.type === 'keydown');
+    emulator.standardController2.updateButton(button, e.type === 'keydown');
 
     e.preventDefault();
   }

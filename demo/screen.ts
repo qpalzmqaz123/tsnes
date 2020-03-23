@@ -3,6 +3,8 @@ import Timer = NodeJS.Timer;
 
 export class Screen {
   private interval: Timer;
+  private startTime = 0;
+  private frame = 0;
 
   constructor(
     private readonly emulator: IEmulator,
@@ -16,9 +18,15 @@ export class Screen {
   }
 
   public start() {
+    this.startTime = Date.now();
+
     this.interval = setInterval(() => {
-      this.refresh();
-    }, 17);
+      const tmp = Math.floor((Date.now() - this.startTime) * 60 / 1000);
+      if (tmp !== this.frame) {
+        this.frame = tmp;
+        this.refresh();
+      }
+    }, 1);
   }
 
   public stop() {

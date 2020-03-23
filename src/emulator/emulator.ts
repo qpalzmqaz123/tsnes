@@ -17,6 +17,13 @@ import { IStandardController } from '../api/controller';
 import { StandardController } from '../controller/standard-controller';
 import { Interrupt } from '../interrupt/interrupt';
 import { IInterrupt } from '../api/interrupt';
+import { APU } from '../apu/apu';
+import { IAPU } from '../api/apu';
+
+interface IOptions {
+  sampleRate: number; // default 48000
+  onSample: (volume: number) => void;
+}
 
 export class Emulator implements IEmulator {
   public readonly standardController1: IStandardController;
@@ -33,8 +40,14 @@ export class Emulator implements IEmulator {
   private readonly spritePalette: IRAM;
   private readonly dma: IDMA;
   private readonly interrupt: IInterrupt;
+  private readonly apu: IAPU;
 
-  constructor(nesData: Uint8Array) {
+  constructor(nesData: Uint8Array, options?: IOptions) {
+    options = Object.assign<IOptions, IOptions>({
+      sampleRate: 48000,
+      onSample: () => { /* Do nothing */ },
+    }, options);
+
     const standardController1 = new StandardController();
     const standardController2 = new StandardController();
     const cartridge = new Cartridge(nesData);
@@ -48,12 +61,16 @@ export class Emulator implements IEmulator {
     const cpuBus = new CPUBus();
     const cpu = new CPU();
     const interrupt = new Interrupt();
+    const apu = new APU(options.sampleRate, options.onSample);
 
     cpu.bus = cpuBus;
 
     ppu.interrupt = interrupt;
     ppu.bus = ppuBus;
     ppu.mapper = cartridge.mapper;
+
+    apu.cpuBus = cpuBus;
+    apu.interrupt = interrupt;
 
     dma.cpuBus = cpuBus;
     dma.oamData = ppu.oamMemory;
@@ -71,6 +88,7 @@ export class Emulator implements IEmulator {
     cpuBus.dma = dma;
     cpuBus.controller1 = standardController1;
     cpuBus.controller2 = standardController2;
+    cpuBus.apu = apu;
 
     cartridge.mapper.interrupt = interrupt;
 
@@ -86,6 +104,7 @@ export class Emulator implements IEmulator {
     this.dma = dma;
     this.standardController1 = standardController1;
     this.standardController2 = standardController2;
+    this.apu = apu;
 
     this.cpu.reset();
   }
@@ -94,6 +113,7 @@ export class Emulator implements IEmulator {
     const frame = (this.ppu as any).frame;
     while (true) {
       this.cpu.clock();
+      this.apu.clock();
       this.ppu.clock();
       this.ppu.clock();
       this.ppu.clock();

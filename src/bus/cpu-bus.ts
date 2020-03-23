@@ -5,8 +5,10 @@ import { IPPU } from '../api/ppu';
 import { ICartridge } from '../api/cartridge';
 import { IController } from '../api/controller';
 import { IDMA } from '../api/dma';
+import { IAPU } from '../api/apu';
 
 // CPU memory map: https://wiki.nesdev.com/w/index.php/CPU_memory_map
+// 2A03 register map: http://wiki.nesdev.com/w/index.php/2A03
 export class CPUBus implements IBus {
   public cartridge: ICartridge;
   public ram: IRAM;
@@ -14,6 +16,7 @@ export class CPUBus implements IBus {
   public dma: IDMA;
   public controller1: IController;
   public controller2: IController;
+  public apu: IAPU;
 
   public writeByte(address: uint16, data: uint8): void {
     if (address < 0x2000) {
@@ -26,11 +29,13 @@ export class CPUBus implements IBus {
       // OAM DMA
       // TODO: DMA needs 512 cycles
       this.dma.copy(data << 8);
-    } else if (address === 0x4016 || address === 0x4017) {
+    } else if (address === 0x4016) {
       // Controller
-      address === 0x4016 ? this.controller1.write(data) : this.controller2.write(data);
+      this.controller1.write(data);
+      this.controller2.write(data);
     } else if (address < 0x4018) {
-      // TODO: APU
+      // APU: $4000-$4013, $4015 and $4017
+      this.apu.write(address, data);
     } else if (address < 0x4020) {
       // APU and I/O functionality that is normally disabled
     } else {
@@ -58,8 +63,8 @@ export class CPUBus implements IBus {
       // Controller
       return address === 0x4016 ? this.controller1.read() : this.controller2.read();
     } else if (address < 0x4018) {
-      // TODO: APU
-      return 0;
+      // APU: $4000-$4013, $4015
+      return this.apu.read(address);
     } else if (address < 0x4020) {
       // APU and I/O functionality that is normally disabled
       return 0;
