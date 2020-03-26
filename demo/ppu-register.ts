@@ -13,7 +13,7 @@ export class PPURegister {
   public start() {
     this.interval = setInterval(() => {
       this.refresh();
-    }, 1000);
+    }, 100);
   }
 
   public stop() {

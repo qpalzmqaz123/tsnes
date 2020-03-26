@@ -85,20 +85,34 @@ export class PPU implements IPPU {
   private shiftRegister: IShiftRegister = {} as any;
   private latchs: ILatchs = {} as any;
   private status: IStatus = new Status();
+  private nmiDelay = 0;
 
   // The PPUDATA read buffer (post-fetch): https://wiki.nesdev.com/w/index.php/PPU_registers#The_PPUDATA_read_buffer_.28post-fetch.29
   private readBuffer = 0;
 
   private frame = 0; // Frame counter
-  private scanLine = 340; // 0 ~ 261
-  private cycle = 240; // 0 ~ 340
+  private scanLine = 240; // 0 ~ 261
+  private cycle = 340; // 0 ~ 340
 
   private oamAddress: uint8;
   private secondaryOam: ISprite[] = Array(8).fill(0).map(() => Object.create(null));
   private spritePixels: number[] = new Array(256);
 
+  // Least significant bits previously written into a PPU register
+  private previousData = 0;
+
+  constructor(
+    private readonly onFrame: (frame: Uint8Array) => void, // frame: PPU palette pixels
+  ) {}
+
   // PPU timing: https://wiki.nesdev.com/w/images/4/4f/Ppu.svg
   public clock(): void {
+    // For odd frames, the cycle at the end of the scanline is skipped (this is done internally by jumping directly from (339,261) to (0,0)
+    // However, this behavior can be bypassed by keeping rendering disabled until after this scanline has passed
+    if (this.scanLine === 261 && this.cycle === 339 && this.frame & 0x01 && (this.mask.isShowBackground || this.mask.isShowSprite)) {
+      this.updateCycle();
+    }
+
     this.updateCycle();
 
     if (!this.mask.isShowBackground && !this.mask.isShowSprite) {
@@ -156,7 +170,11 @@ export class PPU implements IPPU {
     if (this.scanLine === 261) {
       // Cycle 0: do nothing
 
-      // Cycle 1 - 255: do nothing
+      // Cycle 1 - 256: fetch NT, AT, tile
+      if (1 <= this.cycle && this.cycle <= 256) {
+        this.shiftBackground();
+        this.fetchTileRelatedData();
+      }
 
       // Cycle 256
       if (this.cycle === 256) {
@@ -206,6 +224,7 @@ export class PPU implements IPPU {
 
   public cpuWrite(address: uint16, data: uint8): void {
     data &= 0xFF;
+    this.previousData = data & 0x1F;
 
     switch (address) {
       case Register.PPUCTRL:
@@ -234,6 +253,12 @@ export class PPU implements IPPU {
     }
   }
 
+  public dmaCopy(data: Uint8Array) {
+    for (let i = 0; i < 256; i++) {
+      this.oamMemory[(i + this.oamAddress) & 0xFF] = data[i];
+    }
+  }
+
   private writeCtrl(data: uint8): void {
     this.controller.data = data;
 
@@ -254,7 +279,7 @@ export class PPU implements IPPU {
   }
 
   private readStatus(): uint8 {
-    const data = this.status.data;
+    const data = this.status.data | this.previousData;
 
     // Clear VBlank flag
     this.status.isVBlankStarted = false;
@@ -318,7 +343,7 @@ export class PPU implements IPPU {
       this.readBuffer = data;
       data = tmp;
     } else {
-      this.readBuffer = this.bus.readByte(this.register.v);
+      this.readBuffer = this.bus.readByte(this.register.v - 0x1000);
     }
 
     this.register.v += this.controller.vramIncrementStepSize;
@@ -334,6 +359,10 @@ export class PPU implements IPPU {
   }
 
   private updateCycle(): void {
+    if (this.status.isVBlankStarted && this.controller.isNMIEnabled && this.nmiDelay-- === 0) {
+        this.interrupt.nmi();
+    }
+
     this.cycle++;
     if (this.cycle > 340) {
       this.cycle = 0;
@@ -341,34 +370,31 @@ export class PPU implements IPPU {
       if (this.scanLine > 261) {
         this.scanLine = 0;
         this.frame++;
+
+        this.onFrame(this.pixels);
       }
     }
 
     // Set VBlank flag
     if (this.scanLine === 241 && this.cycle === 1) {
-      this.setVBlank();
+      this.status.isVBlankStarted = true;
+
+      // Trigger NMI
+      if (this.controller.isNMIEnabled) {
+        this.nmiDelay = 15;
+      }
     }
 
     // Clear VBlank flag and Sprite0 Overflow
     if (this.scanLine === 261 && this.cycle === 1) {
+      this.status.isVBlankStarted = false;
       this.status.isZeroSpriteHit = false;
-      this.clearVBlank();
+      this.status.isSpriteOverflow = false;
     }
 
-    this.mapper.ppuClockHandle(this.scanLine, this.cycle);
-  }
-
-  private setVBlank() {
-    this.status.isVBlankStarted = true;
-
-    // Trigger NMI
-    if (this.controller.isNMIEnabled) {
-      this.interrupt.nmi();
+    if (this.mask.isShowBackground || this.mask.isShowSprite) {
+      this.mapper.ppuClockHandle(this.scanLine, this.cycle);
     }
-  }
-
-  private clearVBlank() {
-    this.status.isVBlankStarted = false;
   }
 
   private fetchTileRelatedData() {
@@ -518,9 +544,24 @@ export class PPU implements IPPU {
       if (isTransparentSprite) {
         address = 0x3F00 + paletteIndex;
       } else {
-        // TODO: check if background or sprites are hidden in 0-7
-        if ((this.spritePixels[x] & SpritePixel.ZERO) && x !== 255) {
-          this.status.isZeroSpriteHit = true;
+        // Sprite 0 hit does not happen:
+        //   - If background or sprite rendering is disabled in PPUMASK ($2001)
+        //   - At x=0 to x=7 if the left-side clipping window is enabled (if bit 2 or bit 1 of PPUMASK is 0).
+        //   - At x=255, for an obscure reason related to the pixel pipeline.
+        //   - At any pixel where the background or sprite pixel is transparent (2-bit color index from the CHR pattern is %00).
+        //   - If sprite 0 hit has already occurred this frame. Bit 6 of PPUSTATUS ($2002) is cleared to 0 at dot 1 of the pre-render line.
+        //     This means only the first sprite 0 hit in a frame can be detected.
+        if (this.spritePixels[x] & SpritePixel.ZERO) {
+          if (
+            (!this.mask.isShowBackground || !this.mask.isShowSprite) ||
+            (0 <= x && x <= 7 && (!this.mask.isShowSpriteLeft8px || !this.mask.isShowBackgroundLeft8px)) ||
+            x === 255
+            // TODO: Only the first sprite 0 hit in a frame can be detected.
+          ) {
+            // Sprite 0 hit does not happen
+          } else {
+            this.status.isZeroSpriteHit = true;
+          }
         }
         address = this.spritePixels[x] & SpritePixel.BEHIND_BG ? 0x3F00 + paletteIndex : 0x3F10 + spritePaletteIndex;
       }
@@ -619,9 +660,9 @@ export class PPU implements IPPU {
           continue;
         }
 
-        this.spritePixels[sprite.x + i] |= index;
-        this.spritePixels[sprite.x + i] |= isBehind ? SpritePixel.BEHIND_BG : 0;
-        this.spritePixels[sprite.x + i] |= isZero ? SpritePixel.ZERO : 0;
+        this.spritePixels[sprite.x + i] = index |
+          (isBehind ? SpritePixel.BEHIND_BG : 0) |
+          (isZero ? SpritePixel.ZERO : 0);
       }
     }
   }

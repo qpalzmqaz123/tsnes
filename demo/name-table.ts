@@ -16,7 +16,7 @@ export class NameTable {
   public start() {
     this.interval = setInterval(() => {
       this.refresh();
-    }, 1000);
+    }, 300);
   }
 
   public stop() {

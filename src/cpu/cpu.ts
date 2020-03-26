@@ -1,7 +1,7 @@
 import { Flags, ICPU } from '../api/cpu';
 import { Registers } from './registers';
 import { IBus } from '../api/bus';
-import opcodeTable, { AddressingMode, Instruction } from './opcode-table';
+import OPCODE_TABLE, { AddressingMode, Instruction } from './opcode-table';
 import { uint16, uint8 } from '../api/types';
 
 enum InterruptVector {
@@ -20,6 +20,7 @@ interface AddressData {
 // 6502/6510/8500/8502 Opcode matrix: http://www.oxyron.de/html/opcodes02.html
 export class CPU implements ICPU {
   public bus: IBus;
+  public suspendCycles = 0;
 
   private clocks = 0;
   private deferCycles = 0;
@@ -121,6 +122,11 @@ export class CPU implements ICPU {
   }
 
   public clock(): void {
+    if (this.suspendCycles > 0) {
+      this.suspendCycles--;
+      return;
+    }
+
     if (this.deferCycles === 0) {
       this.step();
     }
@@ -169,7 +175,7 @@ export class CPU implements ICPU {
 
   private step(): void {
     const opcode = this.bus.readByte(this.registers.PC++);
-    const entry = opcodeTable[opcode];
+    const entry = OPCODE_TABLE[opcode];
     if (!entry) {
       throw new Error(`Invalid opcode '${opcode}(0x${opcode.toString(16)})', pc: 0x${(this.registers.PC - 1).toString(16)}`);
     }
@@ -812,13 +818,5 @@ export class CPU implements ICPU {
 
   private isCrossPage(addr1: uint16, addr2: uint16): boolean {
     return (addr1 & 0xff00) !== (addr2 & 0xff00);
-  }
-
-  private arr2Word(arr: Uint8Array): uint16 {
-    if (arr.length < 2) {
-      throw new Error(`Invalid buffer ${arr}`);
-    }
-
-    return (arr[1] << 8 | arr[0]) & 0xFFFF;
   }
 }

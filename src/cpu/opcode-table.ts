@@ -38,7 +38,7 @@ export interface IOpcodeEntry {
   pageCycles: number;
 }
 
-const opcodeTable: IOpcodeEntry[] = [
+const OPCODE_TABLE: IOpcodeEntry[] = [
   // http://nesdev.com/the%20%27B%27%20flag%20&%20BRK%20instruction.txt Says:
   //   Regardless of what ANY 6502 documentation says, BRK is a 2 byte opcode. The
   //   first is #$00, and the second is a padding byte. This explains why interrupt
@@ -304,7 +304,7 @@ const opcodeTable: IOpcodeEntry[] = [
   E(Instruction.ISC, AddressingMode.ABSOLUTE_X, 3, 7, 0), // 255, FFh
 ];
 
-export default opcodeTable;
+export default OPCODE_TABLE;
 
 function E(instruction: Instruction, addressingMode: AddressingMode, bytes: number, cycles: number, pageCycles: number): IOpcodeEntry {
   return {

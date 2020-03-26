@@ -86,7 +86,9 @@ export class Triangle implements IChannel {
     this.counter++;
 
     if (!this.isEnabled || this.lengthCounter === 0 || this.linearCounterValue === 0) {
-      this.volume = 0;
+      // Eliminate popping noise
+      this.counter--;
+      this.volume = TRIANGLE_VOLUME_TABLE[this.counter & 0x1F];
     } else {
       this.volume = TRIANGLE_VOLUME_TABLE[this.counter & 0x1F];
     }

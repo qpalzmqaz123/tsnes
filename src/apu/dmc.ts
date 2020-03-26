@@ -12,7 +12,7 @@ export class Dmc {
   public interrupt: IInterrupt;
   public interruptFlag = false;
 
-  private mute = true;
+  private isMuted = true;
 
   private isIrqEnabled = false;
   private isLoopEnabled = false;
@@ -33,7 +33,7 @@ export class Dmc {
       return;
     }
 
-    if (this.clocks % DMC_TABLE[this.frequency] === 0) {
+    if (this.clocks % (DMC_TABLE[this.frequency] + 1) === 0) {
       this.outputUnit();
     }
 
@@ -55,25 +55,29 @@ export class Dmc {
         break;
       case 1:
         this.loadCounter = data & 0x7F;
+
+        this.restartSample();
         break;
       case 2:
         // Sample address = %11AAAAAA.AA000000 = $C000 + (A * 64)
         this.sampleAddress = 0xC000 + data * 64;
+
+        this.restartSample();
         break;
       case 3:
         // Sample length = %LLLL.LLLL0001 = (L * 16) + 1 bytes
         this.sampleLength = data * 16 + 1;
+
+        this.restartSample();
         break;
     }
-
-    this.startSample();
   }
 
-  private startSample() {
+  private restartSample() {
     // When a sample is (re)started, the current address is set to the sample address, and bytes remaining is set to the sample length.
     this.addressCounter = this.sampleAddress;
     this.bytesRemainingCounter = this.sampleLength;
-    this.mute = false;
+    this.isMuted = false;
     this.volume = this.loadCounter;
   }
 
@@ -99,9 +103,9 @@ export class Dmc {
     this.bytesRemainingCounter--;
     if (this.bytesRemainingCounter <= 0) {
       if (this.isLoopEnabled) {
-        this.startSample();
+        this.restartSample();
       } else {
-        this.mute = true;
+        this.isMuted = true;
 
         if (this.isIrqEnabled) {
           this.interruptFlag = true;
@@ -114,7 +118,7 @@ export class Dmc {
   // http://wiki.nesdev.com/w/index.php/APU_DMC#Output_unit
   private outputUnit(): void {
     if (this.bitsRemainingCounter <= 0) {
-      if (this.mute) {
+      if (this.isMuted) {
         return;
       }
 

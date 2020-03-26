@@ -20,7 +20,7 @@ export class Cartridge implements ICartridge {
   public readonly mapper: IMapper;
   public readonly info: IROMInfo = {} as any;
 
-  constructor(data: Uint8Array) {
+  constructor(data: Uint8Array, sram: Uint8Array) {
     Cartridge.checkConstant(data);
 
     this.parseROMInfo(data);
@@ -33,25 +33,25 @@ export class Cartridge implements ICartridge {
 
     switch (this.info.mapper) {
       case 0:
-        this.mapper = new Mapper0(this, prg, chr);
+        this.mapper = new Mapper0(this, sram, prg, chr);
         break;
       case 1:
-        this.mapper = new Mapper1(this, prg, chr);
+        this.mapper = new Mapper1(this, sram, prg, chr);
         break;
       case 2:
-        this.mapper = new Mapper2(this, prg, chr);
+        this.mapper = new Mapper2(this, sram, prg, chr);
         break;
       case 3:
-        this.mapper = new Mapper3(this, prg, chr);
+        this.mapper = new Mapper3(this, sram, prg, chr);
         break;
       case 4:
-        this.mapper = new Mapper4(this, prg, chr);
+        this.mapper = new Mapper4(this, sram, prg, chr);
         break;
       case 74:
-        this.mapper = new Mapper74(this, prg, chr);
+        this.mapper = new Mapper74(this, sram, prg, chr);
         break;
       case 242:
-        this.mapper = new Mapper242(this, prg, chr);
+        this.mapper = new Mapper242(this, sram, prg, chr);
         break;
       default:
         throw new Error(`Unsupported mapper: ${this.info.mapper}`);

@@ -40,4 +40,5 @@ export interface IPPU {
   clock(): void;
   cpuRead(address: uint16): uint8;
   cpuWrite(address: uint16, data: uint8): void;
+  dmaCopy(data: Uint8Array);
 }

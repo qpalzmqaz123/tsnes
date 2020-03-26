@@ -8,10 +8,10 @@ export class Mapper0 implements IMapper {
   public interrupt: IInterrupt;
 
   private readonly isMirrored: boolean;
-  private readonly ram: Uint8Array = new Uint8Array(8192);
 
   constructor(
     private readonly cartridge: ICartridge,
+    private readonly ram: Uint8Array,
     private readonly prg: Uint8Array,
     private readonly chr: Uint8Array,
   ) {
@@ -33,7 +33,8 @@ export class Mapper0 implements IMapper {
     } else if (address >= 0x6000) {
       return this.ram[address - 0x6000];
     } else {
-      throw new Error(`Invalid address: ${address.toString(16)}`);
+      // TODO: Error handling
+      return 0;
     }
   }
 
@@ -47,7 +48,7 @@ export class Mapper0 implements IMapper {
     } else if (address >= 0x6000) {
       this.ram[address - 0x6000] = data;
     } else {
-      throw new Error(`Invalid address: ${address.toString(16)}`);
+      // TODO: Error handling
     }
   }
 

@@ -32,7 +32,7 @@ input.addEventListener('change', () => {
 
   reader.onloadend = () => {
     try {
-      startGame(buffer);
+      startGame(file.name, buffer);
     } catch (e) {
       // tslint:disable-next-line
       console.log(e);
@@ -41,16 +41,25 @@ input.addEventListener('change', () => {
   };
 });
 
-function startGame(nesData: Uint8Array) {
+function startGame(filename: string, nesData: Uint8Array) {
   const audio = new Audio();
+  const screen = new Screen(document.getElementById('screen') as HTMLCanvasElement);
 
   const emulator = new Emulator(nesData, {
     sampleRate: audio.sampleRate,
     onSample: volume => audio.onSample(volume),
+    onFrame: frame => screen.onFrame(frame),
+    sramLoad: (() => {
+      if (localStorage.getItem(filename)) {
+        return Uint8Array.from(JSON.parse(localStorage.getItem(filename)));
+      }
+    })(),
   });
 
+  audio.emulator = emulator;
+  screen.emulator = emulator;
+
   const status = new Status(emulator, document.getElementById('rom'));
-  const screen = new Screen(emulator, document.getElementById('screen') as HTMLCanvasElement);
   const cpuRegister = new CpuRegister(emulator, document.getElementById('register'));
   const ppuRegister = new PPURegister(emulator, document.getElementById('ppu-register'));
   const disASM = new DisASM(emulator, document.getElementById('disasm'));
@@ -61,7 +70,7 @@ function startGame(nesData: Uint8Array) {
   const nameTable = new NameTable(emulator, document.getElementById('name-table') as HTMLCanvasElement);
 
   status.start();
-  screen.start();
+  audio.start();
 
   const debug = document.getElementById('debug-ctrl') as HTMLInputElement;
   debug.addEventListener('change', e => {
@@ -92,6 +101,11 @@ function startGame(nesData: Uint8Array) {
 
       element.style.opacity = debug.checked ? '1' : '0';
     }
+  });
+
+  const trim = document.getElementById('trim-border') as HTMLInputElement;
+  trim.addEventListener('change', e => {
+      screen.isTrimBorder = trim.checked;
   });
 
   document.addEventListener('keydown', keyboardHandle);
@@ -130,4 +144,9 @@ function startGame(nesData: Uint8Array) {
 
     e.preventDefault();
   }
+
+  // Save sram every 3 seconds
+  setInterval(() => {
+    localStorage.setItem(filename, JSON.stringify(Array.from(emulator.sram)));
+  }, 3000);
 }

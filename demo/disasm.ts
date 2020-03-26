@@ -1,6 +1,6 @@
 import { IEmulator } from '../src/api/emulator';
 import { IBus } from '../src/api/bus';
-import opcodeTable, { AddressingMode, Instruction } from '../src/cpu/opcode-table';
+import OPCODE_TABLE, { AddressingMode, Instruction } from '../src/cpu/opcode-table';
 import { sprintf } from 'sprintf-js';
 import Timer = NodeJS.Timer;
 
@@ -37,7 +37,7 @@ export class DisASM {
   private *disASM(pc: number): Generator<string> {
     for (let i = pc; i < 0xFFFF;) {
       const opcode = this.cpuBus.readByte(i++);
-      const entry = opcodeTable[opcode];
+      const entry = OPCODE_TABLE[opcode];
       if (!entry) {
         yield sprintf('%04X: UNDEFINED', i - 1);
         continue;

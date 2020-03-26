@@ -5,7 +5,7 @@ import { ICartridge, Mirror } from '../api/cartridge';
 
 // https://wiki.nesdev.com/w/index.php/MMC3#CHR_Banks
 // register = ChrBankTable[chrA12Inversion][address >> 10]
-const ChrBankTable = [
+const CHR_BANK_TABLE = [
   // CHR A12 inversion is 0
   [0, 0, 1, 1, 2, 3, 4, 5],
   // CHR A12 inversion is 1
@@ -14,7 +14,7 @@ const ChrBankTable = [
 
 // https://wiki.nesdev.com/w/index.php/MMC3#PRG_Banks
 // register = PrgBankTable[prgBankMode][address >> 13]
-const PrgBankTable = [
+const PRG_BANK_TABLE = [
   // PRG ROM bank mode is 0
   [6, 7, -2, -1],
   [-2, 7, 6, -1],
@@ -23,8 +23,6 @@ const PrgBankTable = [
 // MMC3: https://wiki.nesdev.com/w/index.php/MMC3
 export class Mapper4 implements IMapper {
   public interrupt: IInterrupt;
-
-  private readonly ram: Uint8Array = new Uint8Array(8192);
 
   private readonly R = new Uint8Array(8).fill(0); // R0 - R7
   private register = 0; // Index of R
@@ -37,6 +35,7 @@ export class Mapper4 implements IMapper {
 
   constructor(
     private readonly cartridge: ICartridge,
+    private readonly ram: Uint8Array,
     private readonly prg: Uint8Array,
     private readonly chr: Uint8Array,
     private readonly prgBanks = prg.length >> 13,
@@ -55,7 +54,8 @@ export class Mapper4 implements IMapper {
     } else if (address >= 0x6000) {
       return this.ram[address - 0x6000];
     } else {
-      throw new Error(`Invalid address: ${address.toString(16)}`);
+      // TODO: Error handling
+      return 0;
     }
   }
 
@@ -69,7 +69,7 @@ export class Mapper4 implements IMapper {
     } else if (address >= 0x6000) {
       this.ram[address - 0x6000] = data;
     } else {
-      throw new Error(`Invalid address: ${address.toString(16)}, data: '${data}'`);
+      // TODO: Error handling
     }
   }
 
@@ -108,23 +108,23 @@ export class Mapper4 implements IMapper {
     const cpuBank = (address - 0x8000) >> 13;
     const offset = address & 0x1FFF;
 
-    const register = PrgBankTable[this.prgBankMode][cpuBank];
+    const register = PRG_BANK_TABLE[this.prgBankMode][cpuBank];
     const bank = register < 0 ? this.prgBanks + register : this.R[register];
 
-    return (bank << 13) + offset;
+    return ((bank << 13) + offset) % this.prg.length;
   }
 
   private parseChrAddress(address: uint16): uint16 {
     const ppuBank = address >> 10;
     const offset = address & 0x03FF;
 
-    const register = ChrBankTable[this.chrA12Inversion][ppuBank];
+    const register = CHR_BANK_TABLE[this.chrA12Inversion][ppuBank];
     let bank = this.R[register];
     if ((register === 0 || register === 1) && ppuBank % 2) { // 2KB bank
       bank++;
     }
 
-    return (bank << 10) + offset;
+    return ((bank << 10) + offset) % this.chr.length;
   }
 
   private writeRegister(address: uint16, data: uint8): void {

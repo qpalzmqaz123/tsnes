@@ -7,7 +7,7 @@ import { RAM } from '../ram/ram';
 import { IRAM } from '../api/ram';
 import { PPU } from '../ppu/ppu';
 import { IPPU } from '../api/ppu';
-import { IEmulator } from '../api/emulator';
+import { IEmulator, IOptions } from '../api/emulator';
 import { PPUBus } from '../bus/ppu-bus';
 import { getColor } from './palettes';
 import { DMA } from '../dma/dma';
@@ -20,14 +20,10 @@ import { IInterrupt } from '../api/interrupt';
 import { APU } from '../apu/apu';
 import { IAPU } from '../api/apu';
 
-interface IOptions {
-  sampleRate: number; // default 48000
-  onSample: (volume: number) => void;
-}
-
 export class Emulator implements IEmulator {
   public readonly standardController1: IStandardController;
   public readonly standardController2: IStandardController;
+  public readonly sram: Uint8Array;
 
   private readonly cpu: ICPU;
   private readonly ppu: IPPU;
@@ -43,21 +39,21 @@ export class Emulator implements IEmulator {
   private readonly apu: IAPU;
 
   constructor(nesData: Uint8Array, options?: IOptions) {
-    options = Object.assign<IOptions, IOptions>({
-      sampleRate: 48000,
-      onSample: () => { /* Do nothing */ },
-    }, options);
+    options = this.parseOptions(options);
+
+    this.sram = new Uint8Array(8192);
+    this.sram.set(options.sramLoad);
 
     const standardController1 = new StandardController();
     const standardController2 = new StandardController();
-    const cartridge = new Cartridge(nesData);
+    const cartridge = new Cartridge(nesData, this.sram);
     const ppuRam = new RAM(1024 * 2, 0x2000); // 0x2000 ~ 0x2800
     const cpuRam = new RAM(1024 * 2, 0); // 0x0000 ~ 0x0800
     const backgroundPalette = new RAM(16, 0x3F00); // 0x3F00 ~ 0x3F10
     const spritePalette = new RAM(16, 0x3F10); // 0x3F10 ~ 0x3F20
     const dma = new DMA();
     const ppuBus = new PPUBus();
-    const ppu = new PPU();
+    const ppu = new PPU(pixels => options.onFrame(this.parsePalettePixels(pixels)));
     const cpuBus = new CPUBus();
     const cpu = new CPU();
     const interrupt = new Interrupt();
@@ -72,8 +68,8 @@ export class Emulator implements IEmulator {
     apu.cpuBus = cpuBus;
     apu.interrupt = interrupt;
 
-    dma.cpuBus = cpuBus;
-    dma.oamData = ppu.oamMemory;
+    dma.cpu = cpu;
+    dma.ppu = ppu;
 
     interrupt.cpu = cpu;
 
@@ -109,14 +105,18 @@ export class Emulator implements IEmulator {
     this.cpu.reset();
   }
 
+  public clock(): void {
+    this.cpu.clock();
+    this.apu.clock();
+    this.ppu.clock();
+    this.ppu.clock();
+    this.ppu.clock();
+  }
+
   public frame(): void {
     const frame = (this.ppu as any).frame;
     while (true) {
-      this.cpu.clock();
-      this.apu.clock();
-      this.ppu.clock();
-      this.ppu.clock();
-      this.ppu.clock();
+      this.clock();
 
       const newFrame = (this.ppu as any).frame;
       if (newFrame !== frame) {
@@ -125,10 +125,8 @@ export class Emulator implements IEmulator {
     }
   }
 
-  public getImage(): Uint8Array {
-    const pixels = this.ppu.pixels;
-
-    const arr = new Uint8Array(256 * 240 * 3);
+  private parsePalettePixels(pixels: Uint8Array): Uint8Array {
+    const arr = new Uint8Array(pixels.length * 3);
     let ptr = 0;
     for (const p of pixels) {
       const color = getColor(p);
@@ -139,5 +137,16 @@ export class Emulator implements IEmulator {
     }
 
     return arr;
+  }
+
+  private parseOptions(options?: IOptions): IOptions {
+    options = options || {} as any;
+
+    return {
+      sampleRate: options.sampleRate || 48000,
+      onSample: options.onSample || (() => { /* Do nothing */ }),
+      onFrame: options.onFrame || (() => { /* Do nothing */ }),
+      sramLoad: options.sramLoad || new Uint8Array(8192),
+    };
   }
 }
