@@ -19,24 +19,17 @@
         .clearfix:after {content: "."; display: block; height:0; clear:both; visibility: hidden;}
         .clearfix { *zoom:1; }
 
-        #disasm {
-            margin-left: 30px;
-            display: inline-block;
-            position: absolute;
-            height: 480px;
-            overflow: hidden;
-        }
-
-        #register {
-            display: inline-block;
-        }
-
         label {
             display: block;
         }
 
+        body > div {
+            display: flex;
+            justify-content: center;
+        }
+
         .debug {
-            opacity: 0;
+            display: none;
         }
     </style>
 </head>
@@ -48,6 +41,11 @@
     </div>
 
     <div>
+        Select a game
+        <select id="game-list"></select>
+
+        <p style="margin: 0 20px 0 20px">OR</p>
+
         Open nes file
         <input id="file-input" type="file" accept=".nes">
         debug-mode
@@ -57,13 +55,12 @@
     </div>
 
     <div>
-        <label>Status</label>
-        <div id="rom"></div>
+        <div id="status"></div>
     </div>
 
     <div>
-        <canvas id="screen" width="512" height="480" style="display: inline-block"></canvas>
-        <div class="debug" id="disasm"></div>
+        <canvas id="screen" width="768" height="720" style="display: inline-block"></canvas>
+        <div class="debug" id="disasm" style="width: 300px"></div>
     </div>
 
     <div class="debug">

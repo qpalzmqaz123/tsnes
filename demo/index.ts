@@ -9,6 +9,14 @@ import { StandardControllerButton } from '../src/api/controller';
 import { Emulator } from '../src';
 import { CpuRegister } from './cpu-register';
 import { Audio } from './audio';
+import { GameSelector } from './game-selector';
+
+const list = document.getElementById('game-list') as HTMLSelectElement;
+const selector = new GameSelector(list);
+selector.onChange = (filename, data) => {
+  input.disabled = true;
+  startGame(filename, data);
+};
 
 const input = document.getElementById('file-input') as HTMLInputElement;
 input.addEventListener('change', () => {
@@ -32,6 +40,7 @@ input.addEventListener('change', () => {
 
   reader.onloadend = () => {
     try {
+      list.disabled = true;
       startGame(file.name, buffer);
     } catch (e) {
       // tslint:disable-next-line
@@ -59,7 +68,7 @@ function startGame(filename: string, nesData: Uint8Array) {
   audio.emulator = emulator;
   screen.emulator = emulator;
 
-  const status = new Status(emulator, document.getElementById('rom'));
+  const status = new Status(emulator, document.getElementById('status'));
   const cpuRegister = new CpuRegister(emulator, document.getElementById('register'));
   const ppuRegister = new PPURegister(emulator, document.getElementById('ppu-register'));
   const disASM = new DisASM(emulator, document.getElementById('disasm'));
@@ -99,7 +108,7 @@ function startGame(filename: string, nesData: Uint8Array) {
     for (let i = 0; i < elements.length; i++) {
       const element = elements.item(i) as HTMLDivElement;
 
-      element.style.opacity = debug.checked ? '1' : '0';
+      element.style.display = debug.checked ? 'block' : 'none';
     }
   });
 

@@ -4,14 +4,23 @@ export class Screen {
   public emulator: IEmulator;
   public isTrimBorder = true;
 
+  private readonly hiddenCanvasElement;
+  private readonly hiddenCanvasContext;
+  private readonly hiddenScreenImgData;
+  private readonly hiddenImage = new Image();
+
   constructor(
     private readonly canvas: HTMLCanvasElement,
-    private readonly scaleFactor = 3,
     private readonly context = canvas.getContext('2d'),
-    private readonly screenImgData = context.createImageData(256 * scaleFactor, 240 * scaleFactor),
   ) {
-    this.canvas.height = 240 * scaleFactor;
-    this.canvas.width = 256 * scaleFactor;
+    this.context.scale(3, 3);
+    this.hiddenImage.onload = () => this.context.drawImage(this.hiddenImage, 0, 0);
+
+    this.hiddenCanvasElement = document.createElement('canvas');
+    this.hiddenCanvasElement.width = '256';
+    this.hiddenCanvasElement.height = '240';
+    this.hiddenCanvasContext = this.hiddenCanvasElement.getContext('2d');
+    this.hiddenScreenImgData = this.hiddenCanvasContext.createImageData(256, 240);
   }
 
   public onFrame(frame: Uint8Array): void {
@@ -23,20 +32,19 @@ export class Screen {
         continue;
       }
 
-      for (let i = 0; i < this.scaleFactor; i++) {
-        for (let x = 0; x < 256; x++) {
-          const offset = (y * 256 + x) * 3;
+      for (let x = 0; x < 256; x++) {
+        const offset = (y * 256 + x) * 3;
 
-          for (let j = 0; j < this.scaleFactor; j++) {
-            this.screenImgData.data[ptr++] = frame[offset];
-            this.screenImgData.data[ptr++] = frame[offset + 1];
-            this.screenImgData.data[ptr++] = frame[offset + 2];
-            this.screenImgData.data[ptr++] = 255;
-          }
-        }
+        this.hiddenScreenImgData.data[ptr++] = frame[offset];
+        this.hiddenScreenImgData.data[ptr++] = frame[offset + 1];
+        this.hiddenScreenImgData.data[ptr++] = frame[offset + 2];
+        this.hiddenScreenImgData.data[ptr++] = 255;
       }
     }
 
-    this.context.putImageData(this.screenImgData,0,0);
+    this.hiddenCanvasContext.putImageData(this.hiddenScreenImgData,0,0);
+
+    // Draw image
+    this.hiddenImage.src = this.hiddenCanvasElement.toDataURL();
   }
 }

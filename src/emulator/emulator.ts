@@ -131,9 +131,9 @@ export class Emulator implements IEmulator {
     for (const p of pixels) {
       const color = getColor(p);
 
-      arr[ptr++] = color[0];
-      arr[ptr++] = color[1];
-      arr[ptr++] = color[2];
+      arr[ptr++] = color >> 16;
+      arr[ptr++] = color >> 8;
+      arr[ptr++] = color >> 0;
     }
 
     return arr;

@@ -1,11 +1,13 @@
 import { IEmulator } from '../src/api/emulator';
 
-const BUFFER_SIZE = 512;
+const BUFFER_SIZE = 256;
 
 export class Audio {
   public emulator: IEmulator;
 
-  private ctx = new AudioContext();
+  private ctx = new AudioContext({
+    sampleRate: 24000,
+  });
   private source = this.ctx.createBufferSource();
   private scriptNode = this.ctx.createScriptProcessor(BUFFER_SIZE, 0, 1);
   private buffer = [];
@@ -33,15 +35,13 @@ export class Audio {
   private process(e: AudioProcessingEvent) {
     const outputData = e.outputBuffer.getChannelData(0);
 
-    this.waitSample();
-
     for (let sample = 0; sample < outputData.length; sample++) {
       outputData[sample] =  this.buffer.shift();
     }
   }
 
   private waitSample(): void {
-    while (this.buffer.length < BUFFER_SIZE) {
+    while (this.buffer.length < BUFFER_SIZE * 4) {
       this.emulator.clock();
     }
   }

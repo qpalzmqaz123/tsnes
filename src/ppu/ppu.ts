@@ -402,7 +402,7 @@ export class PPU implements IPPU {
       return;
     }
 
-    switch (this.cycle % 8) {
+    switch (this.cycle & 0x07) {
       case 1:
         this.loadBackground();
         this.fetchNameTable();
