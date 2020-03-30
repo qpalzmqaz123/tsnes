@@ -94,7 +94,7 @@ export class PPU implements IPPU {
   private scanLine = 240; // 0 ~ 261
   private cycle = 340; // 0 ~ 340
 
-  private oamAddress: uint8;
+  private oamAddress = 0;
   private secondaryOam: ISprite[] = Array(8).fill(0).map(() => Object.create(null));
   private spritePixels: number[] = new Array(256);
 

@@ -1,11 +1,18 @@
 # TsNES
 
-NES emulator written in typescript
+NES emulator written in typescript, [Online demo](https://qpalzmqaz123.github.io/tsnes-demo/)
 
 ## Usage
 
 ```typescript
-const emulator = new Emulator(Uint8ArrayNESData);
+const emulator = new Emulator(Uint8ArrayNESData, {
+  onFrame: frame => {
+    ... // output image
+  },
+  onSample: volume => {
+    ... // output audio
+  }
+});
 
 document.addEventListener('keydown', e => {
   ... // analyse key board code 
@@ -14,10 +21,7 @@ document.addEventListener('keydown', e => {
 
 setInterval(() => {
   emulator.frame();
-  const img = emulator.getImage(); // [R, G, B, R, G, B ...] pixels
-
-  ... // display img
-}, 1000 / 60);
+}, 16);
 ```
 
 ## Demo
@@ -25,7 +29,7 @@ setInterval(() => {
 Here is an demo running in browser
 
 ```bash
-yarn build && cd dist
+yarn build
 ```
 
-Open index.html in your browser, then you can choose any nes file
+Open `dist/index.html` in your browser, then you can choose any nes file
