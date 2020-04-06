@@ -44,11 +44,11 @@ export class ParttenTable {
 
     tileColors.forEach((colors, tileOffset) => {
       colors.forEach((color, i) => {
-        const rgb = getColor(color);
+        const c = getColor(color);
 
-        this.imageData.data[i * 4] = rgb[0];
-        this.imageData.data[i * 4 + 1] = rgb[1];
-        this.imageData.data[i * 4 + 2] = rgb[2];
+        this.imageData.data[i * 4 + 0] = c >> 16 & 0xFF;
+        this.imageData.data[i * 4 + 1] = c >> 8 & 0xFF;
+        this.imageData.data[i * 4 + 2] = c >> 0 & 0xFF;
         this.imageData.data[i * 4 + 3] = 255;
       });
 

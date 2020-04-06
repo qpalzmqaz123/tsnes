@@ -52,12 +52,11 @@ export class NameTable {
             const bit1 = (tileDataH >> (7 - x)) & 0x01;
             const index = bit1 << 1 | bit0 << 0 | at << 2;
 
-            const color = ppuBus.readByte(0x3F00 + index);
-            const rgb = getColor(color);
+            const color = getColor(ppuBus.readByte(0x3F00 + index));
 
-            this.imageData.data[imageDataOffset++] = rgb[0];
-            this.imageData.data[imageDataOffset++] = rgb[1];
-            this.imageData.data[imageDataOffset++] = rgb[2];
+            this.imageData.data[imageDataOffset++] = color >> 16 & 0xFF;
+            this.imageData.data[imageDataOffset++] = color >> 8 & 0xFF;
+            this.imageData.data[imageDataOffset++] = color >> 0 & 0xFF;
             this.imageData.data[imageDataOffset++] = 255;
           }
         }

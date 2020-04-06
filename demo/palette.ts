@@ -15,7 +15,7 @@ export class Palette {
   public start() {
     this.interval = setInterval(() => {
       this.refresh();
-    }, 100);
+    }, 1000);
   }
 
   public stop() {
@@ -28,7 +28,7 @@ export class Palette {
     const colors = paletteData.map(getColor);
 
     colors.forEach((c, i) => {
-      this.context.fillStyle = `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+      this.context.fillStyle = `rgb(${c >> 16 & 0xFF}, ${c >> 8 & 0xFF}, ${c & 0xFF})`;
       this.context.fillRect(i * 10, 0, i * 10 + 10, 10);
     });
   }
