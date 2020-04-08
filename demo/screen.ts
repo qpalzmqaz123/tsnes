@@ -14,6 +14,7 @@ export class Screen {
     private readonly context = canvas.getContext('2d'),
   ) {
     this.context.scale(3, 3);
+    this.context.imageSmoothingEnabled = false;
     this.hiddenImage.onload = () => this.context.drawImage(this.hiddenImage, 0, 0);
 
     this.hiddenCanvasElement = document.createElement('canvas');
