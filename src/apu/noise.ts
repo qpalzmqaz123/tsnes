@@ -4,7 +4,6 @@ import { IChannel } from '../api/apu';
 
 export class Noise implements IChannel {
   public volume = 0; // 4bit
-  public isEnabled = false;
   public lengthCounter = 0;
 
   private isLengthCounterHalt = false;
@@ -17,6 +16,20 @@ export class Noise implements IChannel {
   private noisePeriod = 0;
 
   private internalTimer = 0;
+
+  private enable = false;
+
+  public get isEnabled(): boolean {
+    return this.enable;
+  }
+
+  public set isEnabled(isEnabled: boolean) {
+    this.enable = isEnabled;
+    if (!isEnabled) {
+      this.lengthCounter = 0;
+    }
+  }
+
 
   public clock(): void {
     if (!this.isEnabled) {

@@ -122,7 +122,6 @@ export class APU implements IAPU {
         this.dmc.write(address - 0x4010, data);
         break;
       case 0x4015:
-        // TODO: Writing a zero to any of the channel enable bits will silence that channel and immediately set its length counter to 0
         this.pulse1.isEnabled = !!(data & 0x01);
         this.pulse2.isEnabled = !!(data & 0x02);
         this.triangle.isEnabled = !!(data & 0x04);

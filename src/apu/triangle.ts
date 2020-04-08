@@ -4,7 +4,6 @@ import { IChannel } from '../api/apu';
 
 export class Triangle implements IChannel {
   public volume = 0; // 0-15
-  public isEnabled = false;
   public lengthCounter = 0; // 5bit
 
   private lenghtCounterHalt = false;
@@ -17,6 +16,19 @@ export class Triangle implements IChannel {
 
   private internalTimer = 0;
   private counter = 0;
+
+  private enable = false;
+
+  public get isEnabled(): boolean {
+    return this.enable;
+  }
+
+  public set isEnabled(isEnabled: boolean) {
+    this.enable = isEnabled;
+    if (!isEnabled) {
+      this.lengthCounter = 0;
+    }
+  }
 
   public clock(): void {
     if (!this.isEnabled) {
