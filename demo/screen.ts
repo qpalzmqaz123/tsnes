@@ -34,6 +34,16 @@ export class Screen {
       }
 
       for (let x = 0; x < 256; x++) {
+        if (this.isTrimBorder &&
+          (0 <= x && x <= 7 || 249 <= x && x <= 256)
+        ) {
+          this.hiddenScreenImgData.data[ptr++] = 255;
+          this.hiddenScreenImgData.data[ptr++] = 255;
+          this.hiddenScreenImgData.data[ptr++] = 255;
+          this.hiddenScreenImgData.data[ptr++] = 255;
+          continue;
+        }
+
         const offset = (y * 256 + x) * 3;
 
         this.hiddenScreenImgData.data[ptr++] = frame[offset];
