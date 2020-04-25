@@ -125,15 +125,11 @@ export class Emulator implements IEmulator {
     }
   }
 
-  private parsePalettePixels(pixels: Uint8Array): Uint8Array {
-    const arr = new Uint8Array(pixels.length * 3);
+  private parsePalettePixels(pixels: Uint8Array): Uint32Array {
+    const arr = new Uint32Array(pixels.length);
     let ptr = 0;
     for (const p of pixels) {
-      const color = getColor(p);
-
-      arr[ptr++] = color >> 16;
-      arr[ptr++] = color >> 8;
-      arr[ptr++] = color >> 0;
+      arr[ptr++] = getColor(p);
     }
 
     return arr;

@@ -3,7 +3,7 @@ import { IStandardController } from './controller';
 export interface IOptions {
   sampleRate: number; // default 48000
   onSample: (volume: number) => void;
-  onFrame: (frame: Uint8Array) => void; // frame: [R, G, B, R, G, B, ...] 256 * 240 * 3 = 184320 byes
+  onFrame: (frame: Uint32Array) => void; // frame: Uint32 RGB Array, length = 256 * 240 = 61440
   sramLoad?: Uint8Array;
 }
 

@@ -24,7 +24,7 @@ export class Screen {
     this.hiddenScreenImgData = this.hiddenCanvasContext.createImageData(256, 240);
   }
 
-  public onFrame(frame: Uint8Array): void {
+  public onFrame(frame: Uint32Array): void {
     let ptr = 0;
     for (let y = 0; y < 240; y++) {
       if (this.isTrimBorder &&
@@ -44,11 +44,11 @@ export class Screen {
           continue;
         }
 
-        const offset = (y * 256 + x) * 3;
+        const offset = y * 256 + x;
 
-        this.hiddenScreenImgData.data[ptr++] = frame[offset];
-        this.hiddenScreenImgData.data[ptr++] = frame[offset + 1];
-        this.hiddenScreenImgData.data[ptr++] = frame[offset + 2];
+        this.hiddenScreenImgData.data[ptr++] = frame[offset] >> 16 & 0xFF;
+        this.hiddenScreenImgData.data[ptr++] = frame[offset] >> 8 & 0xFF;
+        this.hiddenScreenImgData.data[ptr++] = frame[offset] >> 0 & 0xFF;
         this.hiddenScreenImgData.data[ptr++] = 255;
       }
     }
