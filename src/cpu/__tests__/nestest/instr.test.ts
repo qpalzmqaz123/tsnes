@@ -28,7 +28,7 @@ class TestInstructions {
 
   @Test('Test all instruction')
   private test() {
-    for (let instr = 0; instr < 10;) {
+    for (let instr = 0; instr < this.logs.length;) {
       if (this.emulator.cpu.deferCycles === 0) {
         instr++;
 

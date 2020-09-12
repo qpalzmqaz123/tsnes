@@ -666,7 +666,7 @@ export class CPU implements ICPU {
   private plp(addrData: AddressData): void {
     this.registers.P = this.popByte();
     this.setFlag(Flags.B, false);
-    this.setFlag(Flags.U, false);
+    this.setFlag(Flags.U, true);
   }
 
   private rol(addrData: AddressData): void {
@@ -702,7 +702,7 @@ export class CPU implements ICPU {
   private rti(addrData: AddressData): void {
     this.registers.P = this.popByte();
     this.setFlag(Flags.B, false);
-    this.setFlag(Flags.U, false);
+    this.setFlag(Flags.U, true);
 
     this.registers.PC = this.popWord();
   }
