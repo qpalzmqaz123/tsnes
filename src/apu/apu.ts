@@ -140,8 +140,8 @@ export class APU implements IAPU {
 
   // http://wiki.nesdev.com/w/index.php/APU_Mixer
   private sampleOutput(): void {
-    const pulseOut = 0.00952 * (this.pulse1.volume + this.pulse2.volume);
-    const tndOut = 0.00851 * this.triangle.volume + 0.00794 * this.noise.volume + 0.00335 * this.dmc.volume;
+    const pulseOut = 0.00752 * (this.pulse1.volume + this.pulse2.volume);
+    const tndOut = 0.00851 * this.triangle.volume + 0.00494 * this.noise.volume + 0.00335 * this.dmc.volume;
 
     this.onSample(pulseOut + tndOut);
   }
