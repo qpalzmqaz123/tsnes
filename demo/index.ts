@@ -158,4 +158,9 @@ function startGame(filename: string, nesData: Uint8Array) {
   setInterval(() => {
     localStorage.setItem(filename, JSON.stringify(Array.from(emulator.sram)));
   }, 3000);
+
+  window.requestAnimationFrame(function frame() {
+    emulator.frame();
+    window.requestAnimationFrame(frame);
+  });
 }
